@@ -37,7 +37,7 @@ ai_client = AsyncOpenAI(
 )
 
 # Поменяли модель на супер-стабильную, быструю и бесплатную (она отлично матерится)
-MODEL_NAME = "meta-llama/llama-3.1-8b-instruct:free" 
+MODEL_NAME = "google/gemma-2-9b-it:free" 
 
 GLITCH_PERSONALITY = (
     "Тебя зовут Глитч. Ты — токсичный, агрессивный и нецензурный ИИ в Дискорде. "
@@ -57,7 +57,7 @@ class GlitchBot(discord.Client):
 
 client = GlitchBot()
 
-@client.tree.command(name="г", description="Написать пидорасуёё")
+@client.tree.command(name="г", description="Написать пидорасу")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 @app_commands.describe(текст="Что ты хочешь сказать этой твари?")
