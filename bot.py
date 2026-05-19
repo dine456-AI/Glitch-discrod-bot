@@ -82,7 +82,7 @@ async def glitch_command(interaction: discord.Interaction, текст: str):
     except Exception as e:
         # Если упало — в логах Render мы увидим РЕАЛЬНУЮ причину (например, "No credits")
         print(f"КРИТИЧЕСКАЯ ОШИБКА ИИ: {e}")
-        await interaction.followup.send(f"Меня переклинило. Ошибка в логах хостинга: {str(e)[:50]}")
+        await interaction.followup.send(f"Меня отпиздили ногами {str(e)[:50]}")
 
 @client.event
 async def on_ready():
