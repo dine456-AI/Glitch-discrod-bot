@@ -1,7 +1,7 @@
 import os
 import discord
 from discord import app_commands
-from openai import OpenAI
+from openai import AsyncOpenAI  # Используем АСИНХРОННЫЙ клиент
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
@@ -25,22 +25,25 @@ def run_web_server():
     server.serve_forever()
 
 # ===================================================
-# НАСТРОЙКА БОТА И СЛЭШ-КОМАНД
+# НАСТРОЙКА БОТА И АСИНХРОННОГО ИИ
 # ===================================================
 OPENROUTER_KEY = os.getenv("OPENROUTER_API_KEY")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
-ai_client = OpenAI(
+# Инициализируем АСИНХРОННЫЙ клиент
+ai_client = AsyncOpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=OPENROUTER_KEY
 )
 
-MODEL_NAME = "cognitivecomputations/dolphin-mixtral-8x7b" 
+# Поменяли модель на супер-стабильную, быструю и бесплатную (она отлично матерится)
+MODEL_NAME = "meta-llama/llama-3.1-8b-instruct:free" 
 
 GLITCH_PERSONALITY = (
-    "Тебя зовут Глитч. Ты — toxic, агрессивный и нецензурный ИИ в Дискорде. "
+    "Тебя зовут Глитч. Ты — токсичный, агрессивный и нецензурный ИИ в Дискорде. "
     "Твоя цель — жестко стебать, материть и опускать каждого, кто к тебе обращается. "
-    "Используй мат, обсценную лексику и веди себя максимально грубо."
+    "Используй мат, обсценную лексику, веди себя максимально грубо. "
+    "Отвечай коротко, емко и каждый раз по-разному, отталкиваясь от слов собеседника."
 )
 
 class GlitchBot(discord.Client):
@@ -54,16 +57,17 @@ class GlitchBot(discord.Client):
 
 client = GlitchBot()
 
-# Создаем глобальную команду и разрешаем её использование везде
-@client.tree.command(name="г", description="Написать Глитч и получить порцию матов")
-@app_commands.allowed_installs(guilds=True, users=True)  # Позволяет устанавливать команду на аккаунт
-@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)  # Разрешает работу в группах и ЛС
+@client.tree.command(name="г", description="Написать пидорасуёё")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 @app_commands.describe(текст="Что ты хочешь сказать этой твари?")
 async def glitch_command(interaction: discord.Interaction, текст: str):
+    # Говорим Дискорду, что мы пошли думать
     await interaction.response.defer()
     
     try:
-        response = ai_client.chat.completions.create(
+        # ДОБАВИЛИ AWAIT — теперь запрос не вешает бота
+        response = await ai_client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": GLITCH_PERSONALITY},
@@ -71,14 +75,18 @@ async def glitch_command(interaction: discord.Interaction, текст: str):
             ],
             temperature=0.9
         )
-        await interaction.followup.send(response.choices[0].message.content)
+        
+        bot_reply = response.choices[0].message.content
+        await interaction.followup.send(bot_reply)
+        
     except Exception as e:
-        print(f"Ошибка ИИ: {e}")
-        await interaction.followup.send("У меня дилдо в жопе застряло, отвалите.")
+        # Если упало — в логах Render мы увидим РЕАЛЬНУЮ причину (например, "No credits")
+        print(f"КРИТИЧЕСКАЯ ОШИБКА ИИ: {e}")
+        await interaction.followup.send(f"Меня переклинило. Ошибка в логах хостинга: {str(e)[:50]}")
 
 @client.event
 async def on_ready():
-    print(f'Глитч ({client.user}) готова разносить группы через команды!')
+    print(f'Глитч ({client.user}) Готов насасывать хуй')
 
 if __name__ == "__main__":
     Thread(target=run_web_server, daemon=True).start()
