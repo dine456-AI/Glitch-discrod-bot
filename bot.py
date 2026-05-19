@@ -36,8 +36,13 @@ ai_client = AsyncOpenAI(
     api_key=OPENROUTER_KEY
 )
 
-# Поменяли модель на супер-стабильную, быструю и бесплатную (она отлично матерится)
-MODEL_NAME = "deepseek/deepseek-v4-flash:free" 
+# СПИСОК БЕСПЛАТНЫХ МОДЕЛЕЙ ДЛЯ ОБХОДА ОШИБОК 404 И 429
+FREE_MODELS = [
+    "deepseek/deepseek-v4-flash:free",
+    "meta-llama/llama-3-8b-instruct:free",
+    "google/gemma-2-9b-it:free",
+    "qwen/qwen-2-7b-instruct:free"
+]
 
 GLITCH_PERSONALITY = (
     "Тебя зовут Глитч. Ты — токсичный, агрессивный и нецензурный ИИ в Дискорде. "
@@ -66,24 +71,38 @@ async def glitch_command(interaction: discord.Interaction, текст: str):
     # Говорим Дискорду, что мы пошли думать
     await interaction.response.defer()
     
-    try:
-        # ДОБАВИЛИ AWAIT — теперь запрос не вешает бота
-        response = await ai_client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[
-                {"role": "system", "content": GLITCH_PERSONALITY},
-                {"role": "user", "content": f"Пользователь {interaction.user.name} говорит: {текст}"}
-            ],
-            temperature=0.9
-        )
-        
-        bot_reply = response.choices[0].message.content
+    bot_reply = None
+    last_error = ""
+    
+    # ЦИКЛ АВТОМАТИЧЕСКОГО ПЕРЕБОРА МОДЕЛЕЙ
+    for model in FREE_MODELS:
+        try:
+            print(f"Пробую отправить запрос в модель: {model}")
+            response = await ai_client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": GLITCH_PERSONALITY},
+                    {"role": "user", "content": f"Пользователь {interaction.user.name} говорит: {текст}"}
+                ],
+                temperature=0.9
+            )
+            
+            bot_reply = response.choices[0].message.content
+            print(f"Успешно ответила модель: {model}")
+            break  # Если запрос прошел, выходим из цикла
+            
+        except Exception as e:
+            last_error = str(e)
+            print(f"Модель {model} выдала ошибку: {e}. Пробую следующую...")
+            continue  # Если упала — прыгаем на следующую модель в списке
+            
+    # Отправляем результат в Дискорд
+    if bot_reply:
         await interaction.followup.send(bot_reply)
-        
-    except Exception as e:
-        # Если упало — в логах Render мы увидим РЕАЛЬНУЮ причину (например, "No credits")
-        print(f"КРИТИЧЕСКАЯ ОШИБКА ИИ: {e}")
-        await interaction.followup.send(f"Меня отпиздили ногами {str(e)[:50]}")
+    else:
+        # Если вообще весь список бесплатных моделей лежит под нагрузкой
+        print(f"КРИТИЧЕСКАЯ ОШИБКА ИИ (Все модели заняты): {last_error}")
+        await interaction.followup.send(f"Меня отпиздили ногами {last_error[:50]}")
 
 @client.event
 async def on_ready():
