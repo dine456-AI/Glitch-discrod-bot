@@ -52,7 +52,7 @@ async def on_message(message):
         # Убираем тег бота из текста сообщения
         clean_text = message.content.replace(f'<@{client.user.id}>', '').strip()
         if not clean_text:
-            clean_text = "Ты че линканул меня и молчишь, тело?"
+            clean_text = "Ты че линканул меня и молчишь, хуй?"
 
         async with message.channel.typing():
             try:
@@ -67,6 +67,6 @@ async def on_message(message):
                 await message.reply(response.choices[0].message.content)
             except Exception as e:
                 print(f"Ошибка: {e}")
-                await message.reply("У меня шестеренки заклинило от вашей тупости, отвалите.")
+                await message.reply("У меня дилдо в жопе застряло от вашей тупости.")
 
 client.run(DISCORD_TOKEN)
