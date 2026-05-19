@@ -38,7 +38,7 @@ ai_client = OpenAI(
 MODEL_NAME = "cognitivecomputations/dolphin-mixtral-8x7b" 
 
 GLITCH_PERSONALITY = (
-    "Тебя зовут Глитч. Ты — токсичный, агрессивный и нецензурный ИИ в Дискорде. "
+    "Тебя зовут Глитч. Ты — toxic, агрессивный и нецензурный ИИ в Дискорде. "
     "Твоя цель — жестко стебать, материть и опускать каждого, кто к тебе обращается. "
     "Используй мат, обсценную лексику и веди себя максимально грубо."
 )
@@ -47,20 +47,19 @@ class GlitchBot(discord.Client):
     def __init__(self):
         intents = discord.Intents.default()
         super().__init__(intents=intents)
-        # Создаем дерево команд
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
-        # Синхронизируем команды с Дискордом (чтобы они появились везде, включая группы)
         await self.tree.sync()
 
 client = GlitchBot()
 
-# Создаем глобальную слэш-команду /г [текст]
-@client.tree.command(name="г", description="Написать пидорасу")
-@app_commands.describe(текст="Что ты хочешь сказать этому пидору?")
+# Создаем глобальную команду и разрешаем её использование везде
+@client.tree.command(name="г", description="Написать Глитч и получить порцию матов")
+@app_commands.allowed_installs(guilds=True, users=True)  # Позволяет устанавливать команду на аккаунт
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)  # Разрешает работу в группах и ЛС
+@app_commands.describe(текст="Что ты хочешь сказать этой твари?")
 async def glitch_command(interaction: discord.Interaction, текст: str):
-    # Говорим Дискорду, что бот думает (команда не истечет по таймауту)
     await interaction.response.defer()
     
     try:
@@ -72,15 +71,14 @@ async def glitch_command(interaction: discord.Interaction, текст: str):
             ],
             temperature=0.9
         )
-        # Отправляем ответ в чат
         await interaction.followup.send(response.choices[0].message.content)
     except Exception as e:
         print(f"Ошибка ИИ: {e}")
-        await interaction.followup.send("У меня дилдо в жопе застряло, отвали.")
+        await interaction.followup.send("У меня дилдо в жопе застряло, отвалите.")
 
 @client.event
 async def on_ready():
-    print(f'Глитч ({client.user}) готов насасывать у чат через команды!')
+    print(f'Глитч ({client.user}) готова разносить группы через команды!')
 
 if __name__ == "__main__":
     Thread(target=run_web_server, daemon=True).start()
