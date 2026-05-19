@@ -37,7 +37,7 @@ ai_client = AsyncOpenAI(
 )
 
 # Поменяли модель на супер-стабильную, быструю и бесплатную (она отлично матерится)
-MODEL_NAME = "google/gemma-2-9b-it:free" 
+MODEL_NAME = "meta-llama/llama-3-8b-instruct:free" 
 
 GLITCH_PERSONALITY = (
     "Тебя зовут Глитч. Ты — токсичный, агрессивный и нецензурный ИИ в Дискорде. "
