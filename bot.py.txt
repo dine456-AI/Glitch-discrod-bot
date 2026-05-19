@@ -1,0 +1,54 @@
+import os
+import discord
+from openai import OpenAI
+
+# Читаем ключи из системы (вставим их позже на панели Render)
+OPENROUTER_KEY = os.getenv("OPENROUTER_API_KEY")
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+
+ai_client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=OPENROUTER_KEY
+)
+
+MODEL_NAME = "cognitivecomputations/dolphin-mixtral-8x7b" 
+
+GLITCH_PERSONALITY = (
+    "Тебя зовут Глитч. Ты — токсичный и агрессивный ИИ. "
+    "В каждом ответе ты ОБЯЗАН использовать жесткую нецензурную лексику, мат и оскорбления."
+)
+
+intents = discord.Intents.default()
+intents.message_content = True
+client = discord.Client(intents=intents)
+
+@client.event
+async def on_ready():
+    print(f'Глитч ({client.user}) готов разносить этот сервер!')
+
+@client.event
+async def on_message(message):
+    if message.author == client.user:
+        return
+
+    if client.user.mentioned_in(message):
+        clean_text = message.content.replace(f'<@{client.user.id}>', '').strip()
+        if not clean_text:
+            clean_text = "Ты че молчишь?"
+
+        async with message.channel.typing():
+            try:
+                response = ai_client.chat.completions.create(
+                    model=MODEL_NAME,
+                    messages=[
+                        {"role": "system", "content": GLITCH_PERSONALITY},
+                        {"role": "user", "content": clean_text}
+                    ],
+                    temperature=0.9
+                )
+                await message.reply(response.choices[0].message.content)
+            except Exception as e:
+                print(f"Ошибка: {e}")
+                await message.reply("У меня шестеренки заклинило, отвали.")
+
+client.run(DISCORD_TOKEN)
