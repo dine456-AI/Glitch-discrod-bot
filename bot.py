@@ -39,8 +39,8 @@ ai_client = AsyncOpenAI(
 # СПИСОК БЕСПЛАТНЫХ МОДЕЛЕЙ ДЛЯ ОБХОДА ОШИБОК 404 И 429
 FREE_MODELS = [
     "deepseek/deepseek-v4-flash:free",
-    "meta-llama/llama-3-8b-instruct:free",
-    "google/gemma-2-9b-it:free",
+    "nousresearch/hermes-3-llama-3.1-405b:free",
+    "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
     "qwen/qwen-2-7b-instruct:free"
 ]
 
