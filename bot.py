@@ -1,7 +1,7 @@
 import os
 import discord
 from discord import app_commands
-from openai import AsyncOpenAI  # Используем АСИНХРОННЫЙ клиент
+from openai import AsyncOpenAI
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
@@ -25,23 +25,22 @@ def run_web_server():
     server.serve_forever()
 
 # ===================================================
-# НАСТРОЙКА БОТА И АСИНХРОННОГО ИИ
+# НАСТРОЙКА БОТА И PUTER API
 # ===================================================
-OPENROUTER_KEY = os.getenv("OPENROUTER_API_KEY")
+# Берем новый токен от Puter из настроек Render
+PUTER_TOKEN = os.getenv("PUTER_AUTH_TOKEN")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
-# Инициализируем АСИНХРОННЫЙ клиент
+# Направляем АСИНХРОННЫЙ клиент на сервера Puter
 ai_client = AsyncOpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=OPENROUTER_KEY
+    base_url="https://api.puter.com/puterai/openai/v1/",
+    api_key=PUTER_TOKEN
 )
 
-# СПИСОК БЕСПЛАТНЫХ МОДЕЛЕЙ ДЛЯ ОБХОДА ОШИБОК 404 И 429
+# Модели DeepSeek, доступные через Puter
 FREE_MODELS = [
-    "deepseek/deepseek-v4-flash:free",
-    "nousresearch/hermes-3-llama-3.1-405b:free",
-    "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
-    "qwen/qwen-2-7b-instruct:free"
+    "deepseek-chat",  # Обычный и самый быстрый DeepSeek V3
+    "deepseek-r1"     # Более мощная модель (на случай, если первая занята)
 ]
 
 GLITCH_PERSONALITY = (
@@ -68,16 +67,15 @@ client = GlitchBot()
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 @app_commands.describe(текст="Что ты хочешь сказать этой твари?")
 async def glitch_command(interaction: discord.Interaction, текст: str):
-    # Говорим Дискорду, что мы пошли думать
     await interaction.response.defer()
     
     bot_reply = None
     last_error = ""
     
-    # ЦИКЛ АВТОМАТИЧЕСКОГО ПЕРЕБОРА МОДЕЛЕЙ
+    # Пытаемся получить ответ от DeepSeek
     for model in FREE_MODELS:
         try:
-            print(f"Пробую отправить запрос в модель: {model}")
+            print(f"Пробую отправить запрос в модель: {model} через Puter...")
             response = await ai_client.chat.completions.create(
                 model=model,
                 messages=[
@@ -89,24 +87,23 @@ async def glitch_command(interaction: discord.Interaction, текст: str):
             
             bot_reply = response.choices[0].message.content
             print(f"Успешно ответила модель: {model}")
-            break  # Если запрос прошел, выходим из цикла
+            break 
             
         except Exception as e:
             last_error = str(e)
             print(f"Модель {model} выдала ошибку: {e}. Пробую следующую...")
-            continue  # Если упала — прыгаем на следующую модель в списке
+            continue 
             
-    # Отправляем результат в Дискорд
     if bot_reply:
-        await interaction.followup.send(bot_reply)
+        # Лимит одного сообщения в Дискорде — 2000 символов. Отрезаем лишнее, чтобы бот не крашился.
+        await interaction.followup.send(bot_reply[:2000])
     else:
-        # Если вообще весь список бесплатных моделей лежит под нагрузкой
-        print(f"КРИТИЧЕСКАЯ ОШИБКА ИИ (Все модели заняты): {last_error}")
+        print(f"КРИТИЧЕСКАЯ ОШИБКА ИИ (Puter не отвечает): {last_error}")
         await interaction.followup.send(f"Меня отпиздили ногами {last_error[:50]}")
 
 @client.event
 async def on_ready():
-    print(f'Глитч ({client.user}) Готов насасывать хуй')
+    print(f'Глитч ({client.user}) Готов насасывать хуи')
 
 if __name__ == "__main__":
     Thread(target=run_web_server, daemon=True).start()
