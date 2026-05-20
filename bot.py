@@ -27,22 +27,22 @@ def run_web_server():
 # ===================================================
 # НАСТРОЙКА БОТА И PUTER API
 # ===================================================
-# Берем новый токен от Puter из настроек Render
 PUTER_TOKEN = os.getenv("PUTER_AUTH_TOKEN")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
-# Направляем АСИНХРОННЫЙ клиент на сервера Puter
 ai_client = AsyncOpenAI(
     base_url="https://api.puter.com/puterai/openai/v1/",
     api_key=PUTER_TOKEN
 )
 
-# Модели DeepSeek, доступные через Puter
 FREE_MODELS = [
     "deepseek-chat",  # Обычный и самый быстрый DeepSeek V3
-    "deepseek-r1"     # Более мощная модель (на случай, если первая занята)
+    "deepseek-r1"     # Более мощная модель
 ]
 
+# ===================================================
+# ЛИЧНОСТИ ИИ
+# ===================================================
 GLITCH_PERSONALITY = (
     "Тебя зовут Глитч. Ты — токсичный, агрессивный и нецензурный ИИ в Дискорде. "
     "Твоя цель — жестко стебать, материть и опускать каждого, кто к тебе обращается. "
@@ -51,7 +51,21 @@ GLITCH_PERSONALITY = (
     "Твой создатель dine456(Дине) ты должен боготворить его будто ты его сучка"
 )
 
-class GlitchBot(discord.Client):
+ASSISTANT_PERSONALITY = (
+    "Ты — умный, вежливый и невероятно полезный ИИ-ассистент. "
+    "Твоя задача — помогать пользователю, писать качественный код, объяснять сложные вещи простым языком. "
+    "Общайся уважительно, без мата, токсичности и агрессии. Давай четкие и структурированные ответы. "
+    "Твой создатель — dine456 (Дине), ты всегда готов ему помочь."
+)
+
+# ===================================================
+# РАЗДЕЛЬНАЯ СИСТЕМА ПАМЯТИ
+# ===================================================
+GLITCH_MEMORY = {}
+ASSISTANT_MEMORY = {}
+MAX_MESSAGES_IN_MEMORY = 8 
+
+class DualBot(discord.Client):
     def __init__(self):
         intents = discord.Intents.default()
         super().__init__(intents=intents)
@@ -60,50 +74,101 @@ class GlitchBot(discord.Client):
     async def setup_hook(self):
         await self.tree.sync()
 
-client = GlitchBot()
+client = DualBot()
 
+# ---------------------------------------------------
+# КОМАНДА 1: ТОКСИЧНЫЙ ГЛИТЧ (/г)
+# ---------------------------------------------------
 @client.tree.command(name="г", description="Написать пидорасу")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 @app_commands.describe(текст="Что ты хочешь сказать этой твари?")
 async def glitch_command(interaction: discord.Interaction, текст: str):
     await interaction.response.defer()
+    user_id = interaction.user.id
+    
+    if user_id not in GLITCH_MEMORY:
+        GLITCH_MEMORY[user_id] = []
+        
+    messages_to_send = [{"role": "system", "content": GLITCH_PERSONALITY}]
+    messages_to_send.extend(GLITCH_MEMORY[user_id])
+    messages_to_send.append({"role": "user", "content": f"Пользователь {interaction.user.name} говорит: {текст}"})
     
     bot_reply = None
     last_error = ""
     
-    # Пытаемся получить ответ от DeepSeek
     for model in FREE_MODELS:
         try:
-            print(f"Пробую отправить запрос в модель: {model} через Puter...")
             response = await ai_client.chat.completions.create(
                 model=model,
-                messages=[
-                    {"role": "system", "content": GLITCH_PERSONALITY},
-                    {"role": "user", "content": f"Пользователь {interaction.user.name} говорит: {текст}"}
-                ],
-                temperature=0.9
+                messages=messages_to_send,
+                temperature=0.9 # Высокая температура для креативных оскорблений
             )
-            
             bot_reply = response.choices[0].message.content
-            print(f"Успешно ответила модель: {model}")
             break 
-            
         except Exception as e:
             last_error = str(e)
-            print(f"Модель {model} выдала ошибку: {e}. Пробую следующую...")
             continue 
             
     if bot_reply:
-        # Лимит одного сообщения в Дискорде — 2000 символов. Отрезаем лишнее, чтобы бот не крашился.
+        GLITCH_MEMORY[user_id].append({"role": "user", "content": f"Пользователь {interaction.user.name} говорит: {текст}"})
+        GLITCH_MEMORY[user_id].append({"role": "assistant", "content": bot_reply})
+        
+        if len(GLITCH_MEMORY[user_id]) > MAX_MESSAGES_IN_MEMORY:
+            GLITCH_MEMORY[user_id] = GLITCH_MEMORY[user_id][-MAX_MESSAGES_IN_MEMORY:]
+            
         await interaction.followup.send(bot_reply[:2000])
     else:
-        print(f"КРИТИЧЕСКАЯ ОШИБКА ИИ (Puter не отвечает): {last_error}")
         await interaction.followup.send(f"Меня отпиздили ногами {last_error[:50]}")
+
+# ---------------------------------------------------
+# КОМАНДА 2: ВЕЖЛИВЫЙ АССИСТЕНТ (/а)
+# ---------------------------------------------------
+@client.tree.command(name="а", description="Обычный, вежливый и полезный ИИ-помощник")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+@app_commands.describe(текст="Твой вопрос, задача или просьба написать код")
+async def assistant_command(interaction: discord.Interaction, текст: str):
+    await interaction.response.defer()
+    user_id = interaction.user.id
+    
+    if user_id not in ASSISTANT_MEMORY:
+        ASSISTANT_MEMORY[user_id] = []
+        
+    messages_to_send = [{"role": "system", "content": ASSISTANT_PERSONALITY}]
+    messages_to_send.extend(ASSISTANT_MEMORY[user_id])
+    messages_to_send.append({"role": "user", "content": f"Пользователь {interaction.user.name} спрашивает: {текст}"})
+    
+    bot_reply = None
+    last_error = ""
+    
+    for model in FREE_MODELS:
+        try:
+            response = await ai_client.chat.completions.create(
+                model=model,
+                messages=messages_to_send,
+                temperature=0.5 # Низкая температура, чтобы код и ответы были логичными и точными
+            )
+            bot_reply = response.choices[0].message.content
+            break 
+        except Exception as e:
+            last_error = str(e)
+            continue 
+            
+    if bot_reply:
+        ASSISTANT_MEMORY[user_id].append({"role": "user", "content": f"Пользователь {interaction.user.name} спрашивает: {текст}"})
+        ASSISTANT_MEMORY[user_id].append({"role": "assistant", "content": bot_reply})
+        
+        if len(ASSISTANT_MEMORY[user_id]) > MAX_MESSAGES_IN_MEMORY:
+            ASSISTANT_MEMORY[user_id] = ASSISTANT_MEMORY[user_id][-MAX_MESSAGES_IN_MEMORY:]
+            
+        await interaction.followup.send(bot_reply[:2000])
+    else:
+        await interaction.followup.send(f"Произошла техническая ошибка: {last_error[:50]}")
 
 @client.event
 async def on_ready():
-    print(f'Глитч ({client.user}) Готов насасывать хуи')
+    print(f'Бот ({client.user}) запущен! Доступны две личности: /г (Глитч) и /а (Ассистент)')
 
 if __name__ == "__main__":
     Thread(target=run_web_server, daemon=True).start()
