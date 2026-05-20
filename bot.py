@@ -5,9 +5,6 @@ from openai import AsyncOpenAI
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-# ===================================================
-# ВЕБ-СЕРВЕР ДЛЯ ТОГО, ЧТОБЫ RENDER НЕ ВЫКЛЮЧАЛ БОТА
-# ===================================================
 class KeepAliveHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -24,9 +21,7 @@ def run_web_server():
     print(f"Фоновый веб-сервер работает на порту {port}")
     server.serve_forever()
 
-# ===================================================
-# НАСТРОЙКА БОТА И PUTER API
-# ===================================================
+
 PUTER_TOKEN = os.getenv("PUTER_AUTH_TOKEN")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -36,13 +31,11 @@ ai_client = AsyncOpenAI(
 )
 
 FREE_MODELS = [
-    "deepseek-chat",  # Обычный и самый быстрый DeepSeek V3
-    "deepseek-r1"     # Более мощная модель
+    "deepseek-chat",  
+    "deepseek-r1"     
 ]
 
-# ===================================================
-# ЛИЧНОСТИ ИИ
-# ===================================================
+
 GLITCH_PERSONALITY = (
     "Тебя зовут Глитч. Ты — токсичный, агрессивный и нецензурный ИИ в Дискорде. "
     "Твоя цель — жестко стебать, материть и опускать каждого, кто к тебе обращается. "
@@ -58,9 +51,7 @@ ASSISTANT_PERSONALITY = (
     "Твой создатель — dine456 (Дине), ты всегда готов ему помочь."
 )
 
-# ===================================================
-# РАЗДЕЛЬНАЯ СИСТЕМА ПАМЯТИ
-# ===================================================
+
 GLITCH_MEMORY = {}
 ASSISTANT_MEMORY = {}
 MAX_MESSAGES_IN_MEMORY = 8 
@@ -76,9 +67,7 @@ class DualBot(discord.Client):
 
 client = DualBot()
 
-# ---------------------------------------------------
-# КОМАНДА 1: ТОКСИЧНЫЙ ГЛИТЧ (/г)
-# ---------------------------------------------------
+
 @client.tree.command(name="г", description="Написать пидорасу")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
@@ -121,9 +110,7 @@ async def glitch_command(interaction: discord.Interaction, текст: str):
     else:
         await interaction.followup.send(f"Меня отпиздили ногами {last_error[:50]}")
 
-# ---------------------------------------------------
-# КОМАНДА 2: ВЕЖЛИВЫЙ АССИСТЕНТ (/а)
-# ---------------------------------------------------
+
 @client.tree.command(name="а", description="Просто ИИ-помощник")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
@@ -147,7 +134,7 @@ async def assistant_command(interaction: discord.Interaction, текст: str):
             response = await ai_client.chat.completions.create(
                 model=model,
                 messages=messages_to_send,
-                temperature=0.5 # Низкая температура, чтобы код и ответы были логичными и точными
+                temperature=0.5 
             )
             bot_reply = response.choices[0].message.content
             break 
