@@ -124,7 +124,7 @@ async def glitch_command(interaction: discord.Interaction, текст: str):
 # ---------------------------------------------------
 # КОМАНДА 2: ВЕЖЛИВЫЙ АССИСТЕНТ (/а)
 # ---------------------------------------------------
-@client.tree.command(name="а", description="Обычный, вежливый и полезный ИИ-помощник")
+@client.tree.command(name="а", description="Просто ИИ-помощник")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 @app_commands.describe(текст="Твой вопрос, задача или просьба написать код")
